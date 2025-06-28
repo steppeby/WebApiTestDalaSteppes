@@ -1,4 +1,7 @@
 using DataAccess.Data;
+using Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Build.Framework;
 using Microsoft.EntityFrameworkCore;
 using System.Configuration;
 
@@ -22,7 +25,9 @@ namespace WebApiTestDalaSteppes
             builder.Services.AddDbContext<WebApiDbContext>(
                             options => options.UseNpgsql(connectionString));
 
+
             builder.Services.AddAuthentication();
+            builder.Services.AddAuthorization();
 
             var app = builder.Build();
 
@@ -35,6 +40,7 @@ namespace WebApiTestDalaSteppes
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
 
