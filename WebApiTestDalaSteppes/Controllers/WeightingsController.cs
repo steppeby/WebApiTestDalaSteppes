@@ -3,33 +3,52 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DataAccess.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace WebApiTestDalaSteppes.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class WeightingsController : ControllerBase
     {
         private readonly WebApiDbContext _context;
+        private readonly UserManager<IdentityUser> _userManager;
 
-        public WeightingsController(WebApiDbContext context)
+        public WeightingsController(UserManager<IdentityUser> userManager, WebApiDbContext context)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         // GET: api/Weightings
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Weighting>>> GetWeightings()
         {
-            return await _context.Weightings.ToListAsync();
+            var user = await _userManager.GetUserAsync(User);
+            var roles = await _userManager.GetRolesAsync(user);
+
+            IQueryable<Weighting> query = _context.Weightings;
+
+            if (!roles.Contains("Admin"))
+            {
+                query = query.Where(w => w.AssignedToUserId == user.Id);
+            }
+
+            var weightings = await query.ToListAsync();
+
+            return Ok(weightings);
         }
 
         // GET: api/Weightings/5
         [HttpGet("{id}")]
+        [Authorize(Roles ="Admin")]
         public async Task<ActionResult<Weighting>> GetWeighting(int id)
         {
             var weighting = await _context.Weightings.FindAsync(id);
@@ -47,6 +66,15 @@ namespace WebApiTestDalaSteppes.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutWeighting(int id, Weighting weighting)
         {
+            var user = await _userManager.GetUserAsync(User);
+            var roles = await _userManager.GetRolesAsync(user);
+            if (!roles.Contains("Admin"))
+            {
+                if (user.Id != weighting.AssignedToUserId)
+                {
+                    return Forbid();
+                }
+            }
             if (id != weighting.Id)
             {
                 return BadRequest();
@@ -86,6 +114,7 @@ namespace WebApiTestDalaSteppes.Controllers
 
         // DELETE: api/Weightings/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteWeighting(int id)
         {
             var weighting = await _context.Weightings.FindAsync(id);

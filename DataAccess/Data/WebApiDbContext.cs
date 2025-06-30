@@ -1,10 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using DataAccess.Data.ModelsConfiguration;
 using Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace DataAccess.Data
 {
-    public class WebApiDbContext : DbContext
+    public class WebApiDbContext : IdentityDbContext
     {
         public virtual DbSet<AnimalType> AnimalTypes { get; set; }
         public virtual DbSet<Breed> Breeds { get; set; }
@@ -28,6 +29,7 @@ namespace DataAccess.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyConfiguration(new WeightingConfiguration());
+            base.OnModelCreating(modelBuilder);
         }
     }
 }

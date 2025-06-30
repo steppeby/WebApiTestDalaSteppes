@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using Microsoft.AspNetCore.Identity;
+using System.Text.Json.Serialization;
 
 namespace Models
 {
@@ -10,5 +11,9 @@ namespace Models
         public Animal? Animal { get; set; }
         public int Weight { get; set; }
         public DateTime WeightDate { get; set; }
+        public string? AssignedToUserId { get; set; }
+        [JsonIgnore]
+        public IdentityUser? AssignedToUser { get; set; }
+
     }
 }

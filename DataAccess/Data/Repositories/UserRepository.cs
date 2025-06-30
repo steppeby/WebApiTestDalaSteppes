@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace DataAccess.Data.Repositories
 {
-    public class UserRepository : Repository<User>, IUserRepository
+    public class UserRepository : Repository<IdentityUser>, IUserRepository
     {
         private readonly WebApiDbContext _db;
         public UserRepository(WebApiDbContext db) : base(db)
