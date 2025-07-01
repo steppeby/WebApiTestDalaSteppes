@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -10,7 +11,7 @@ namespace DataAccess.Data
 {
     public static class DbInitializer
     {
-        public static async Task SeedRolesAndAdminAsync(IServiceProvider serviceProvider)
+        public static async Task SeedRolesAndAdminAsync(IServiceProvider serviceProvider, IConfiguration config)
         {
             var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
             var userManager = serviceProvider.GetRequiredService<UserManager<IdentityUser>>();
@@ -22,9 +23,8 @@ namespace DataAccess.Data
                     await roleManager.CreateAsync(new IdentityRole(role));
             }
 
-            string adminEmail = "admin@admin.com";
-            string adminPassword = "Admin!123";
-
+            string adminEmail = config["AdminUser:email"] ?? "admin@admin.com";
+            string adminPassword = config["AdminUser:password"] ?? "Admin!123";
             var adminUser = await userManager.FindByEmailAsync(adminEmail);
             if (adminUser == null)
             {

@@ -4,11 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Models
+namespace Models.DTO
 {
-    public class AssignUserRole
+    public class CreateAnimalType
     {
-        public string Email { get; set; }
-        public string RoleName { get; set; }
+        public string Name { get; set; }
     }
 }

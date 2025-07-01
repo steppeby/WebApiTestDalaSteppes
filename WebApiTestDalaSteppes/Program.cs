@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
+using WebApiTestDalaSteppes.Services;
+using Microsoft.AspNetCore.Identity.UI.Services;
 
 namespace WebApiTestDalaSteppes
 {
@@ -92,12 +94,14 @@ namespace WebApiTestDalaSteppes
                 });
             });
 
+            builder.Services.AddTransient<IEmailSender, MailKitService>();
+
             var app = builder.Build();
 
             using (var scope = app.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;
-                await DbInitializer.SeedRolesAndAdminAsync(services);
+                await DbInitializer.SeedRolesAndAdminAsync(services, builder.Configuration);
             }
 
             if (app.Environment.IsDevelopment())

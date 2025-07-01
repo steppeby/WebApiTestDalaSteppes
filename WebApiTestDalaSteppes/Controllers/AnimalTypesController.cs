@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using Models.DTO;
 
 namespace WebApiTestDalaSteppes.Controllers
 {
@@ -45,7 +46,6 @@ namespace WebApiTestDalaSteppes.Controllers
         }
 
         // PUT: api/AnimalTypes/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutAnimalType(int id, AnimalType animalType)
         {
@@ -60,7 +60,7 @@ namespace WebApiTestDalaSteppes.Controllers
             {
                 await _context.SaveChangesAsync();
             }
-            catch (DbUpdateConcurrencyException)
+            catch (DbUpdateException)
             {
                 if (!AnimalTypeExists(id))
                 {
@@ -76,10 +76,13 @@ namespace WebApiTestDalaSteppes.Controllers
         }
 
         // POST: api/AnimalTypes
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<AnimalType>> PostAnimalType(AnimalType animalType)
+        public async Task<ActionResult<AnimalType>> PostAnimalType(CreateAnimalType dto)
         {
+            var animalType = new AnimalType
+            {
+                Name = dto.Name
+            };
             _context.AnimalTypes.Add(animalType);
             await _context.SaveChangesAsync();
 

@@ -11,7 +11,6 @@ namespace DataAccess.Data
         public virtual DbSet<Breed> Breeds { get; set; }
         public virtual DbSet<Animal> Animals { get; set; }
         public virtual DbSet<Weighting> Weightings { get; set; }
-        //public virtual DbSet<User> Users { get; set; }
         public WebApiDbContext()
         {
             Database.EnsureCreated();
@@ -23,7 +22,6 @@ namespace DataAccess.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            //optionsBuilder.UseNpgsql();
             base.OnConfiguring(optionsBuilder);
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)

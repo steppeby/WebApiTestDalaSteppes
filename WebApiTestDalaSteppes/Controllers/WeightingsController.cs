@@ -1,15 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using DataAccess.Data;
+﻿using DataAccess.Data;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Models;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+using Models.DTO;
+using System.Data;
 
 namespace WebApiTestDalaSteppes.Controllers
 {
@@ -33,7 +29,6 @@ namespace WebApiTestDalaSteppes.Controllers
         {
             var user = await _userManager.GetUserAsync(User);
             var roles = await _userManager.GetRolesAsync(user);
-
             IQueryable<Weighting> query = _context.Weightings;
 
             if (!roles.Contains("Admin"))
@@ -48,10 +43,21 @@ namespace WebApiTestDalaSteppes.Controllers
 
         // GET: api/Weightings/5
         [HttpGet("{id}")]
-        [Authorize(Roles ="Admin")]
+        [Authorize]
         public async Task<ActionResult<Weighting>> GetWeighting(int id)
         {
-            var weighting = await _context.Weightings.FindAsync(id);
+            var user = await _userManager.GetUserAsync(User);
+            var roles = await _userManager.GetRolesAsync(user);
+            IQueryable<Weighting> query = _context.Weightings;
+            if (!roles.Contains("Admin"))
+            {
+                query = query.Where(w =>  w.AssignedToUserId == user.Id && w.Id == id);
+            }
+            else
+            {
+                query = query.Where(w => w.Id == id);
+            }
+            var weighting = await query.FirstOrDefaultAsync();
 
             if (weighting == null)
             {
@@ -62,7 +68,6 @@ namespace WebApiTestDalaSteppes.Controllers
         }
 
         // PUT: api/Weightings/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutWeighting(int id, Weighting weighting)
         {
@@ -86,28 +91,58 @@ namespace WebApiTestDalaSteppes.Controllers
             {
                 await _context.SaveChangesAsync();
             }
-            catch (DbUpdateConcurrencyException)
+            catch (DbUpdateException)
             {
                 if (!WeightingExists(id))
                 {
                     return NotFound();
                 }
-                else
+                if (!AnimalExists(weighting.AnimalId))
                 {
-                    throw;
+                    return NotFound("Animal does not exist.");
                 }
+                if (!AssignedUserExists(weighting.AssignedToUserId))
+                {
+                    return NotFound("Assigned user does not exist.");
+                }
+                throw;
             }
 
             return NoContent();
         }
 
         // POST: api/Weightings
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Weighting>> PostWeighting(Weighting weighting)
+        public async Task<ActionResult<Weighting>> PostWeighting(CreateWeighting dto)
         {
+            var weighting = new Weighting
+            {
+                AnimalId = dto.AnimalId,
+                Weight = dto.Weight,
+                WeightDate = dto.WeightDate,
+                AssignedToUserId = dto.AssignedToUserId
+            };
             _context.Weightings.Add(weighting);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                if (!AnimalExists(weighting.AnimalId))
+                {
+                    return NotFound("Animal does not exist.");
+                }
+                if (!AssignedUserExists(weighting.AssignedToUserId))
+                {
+                    return NotFound("Assigned user does not exist.");
+                }
+                if (!NotUniqueWeighting(weighting.AnimalId, weighting.WeightDate))
+                {
+                    return BadRequest("You cannot weigh an animal twice on the same date.");
+                }
+                throw;
+            }
 
             return CreatedAtAction("GetWeighting", new { id = weighting.Id }, weighting);
         }
@@ -132,6 +167,18 @@ namespace WebApiTestDalaSteppes.Controllers
         private bool WeightingExists(int id)
         {
             return _context.Weightings.Any(e => e.Id == id);
+        }
+        private bool AnimalExists(int id)
+        {
+            return _context.Animals.Any(e => e.Id == id);
+        }
+        private bool AssignedUserExists(string id)
+        {
+            return _context.Users.Any(e => e.Id == id);
+        }
+        private bool NotUniqueWeighting(int animalId, DateTime weightingDate)
+        {
+            return _context.Weightings.Any(e => e.AnimalId == animalId && e.WeightDate == weightingDate);
         }
     }
 }

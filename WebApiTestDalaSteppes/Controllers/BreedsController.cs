@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using Models.DTO;
 
 namespace WebApiTestDalaSteppes.Controllers
 {
@@ -45,7 +46,6 @@ namespace WebApiTestDalaSteppes.Controllers
         }
 
         // PUT: api/Breeds/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutBreed(int id, Breed breed)
         {
@@ -60,7 +60,7 @@ namespace WebApiTestDalaSteppes.Controllers
             {
                 await _context.SaveChangesAsync();
             }
-            catch (DbUpdateConcurrencyException)
+            catch (DbUpdateException)
             {
                 if (!BreedExists(id))
                 {
@@ -77,17 +77,28 @@ namespace WebApiTestDalaSteppes.Controllers
         }
 
         // POST: api/Breeds
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Breed>> PostBreed(Breed breed)
+        public async Task<ActionResult<Breed>> PostBreed(CreateBreed dto)
         {
-            if (!AnimalTypeExists(breed.AnimalTypeId))
+            var breed = new Breed
             {
-                return BadRequest();
-            }
+                Name = dto.Name,
+                AnimalTypeId = dto.AnimalTypeId
+            };
+            
             _context.Breeds.Add(breed);
-            await _context.SaveChangesAsync();
-
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                if (!AnimalTypeExists(breed.AnimalTypeId))
+                {
+                    return BadRequest("Animal type not exist.");
+                }
+                throw;
+            }
             return CreatedAtAction("GetBreed", new { id = breed.Id }, breed);
         }
 

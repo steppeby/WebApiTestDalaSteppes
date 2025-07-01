@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using Models.DTO;
 
 namespace WebApiTestDalaSteppes.Controllers
 {
@@ -45,7 +46,6 @@ namespace WebApiTestDalaSteppes.Controllers
         }
 
         // PUT: api/Animals/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutAnimal(int id, Animal animal)
         {
@@ -60,28 +60,48 @@ namespace WebApiTestDalaSteppes.Controllers
             {
                 await _context.SaveChangesAsync();
             }
-            catch (DbUpdateConcurrencyException)
+            catch (DbUpdateException)
             {
                 if (!AnimalExists(id))
                 {
                     return NotFound();
                 }
-                else
+                if (!BreedExists(animal.BreedId))
                 {
-                    throw;
+                    return NotFound("Breed does not exist.");
                 }
+                throw;
             }
 
             return NoContent();
         }
 
         // POST: api/Animals
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Animal>> PostAnimal(Animal animal)
+        public async Task<ActionResult<Animal>> PostAnimal(CreateAnimal dto)
         {
+            var animal = new Animal
+            {
+                Name = dto.Name,
+                Sex = dto.Sex,
+                ArrivalDate = dto.ArrivalDate,
+                ArrivalAge = dto.ArrivalAge,
+                BreedId = dto.BreedId,
+                ParentId = dto.ParentId
+            };
             _context.Animals.Add(animal);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                if (!BreedExists(animal.BreedId))
+                {
+                    return NotFound("Breed does not exist.");
+                }
+                throw;
+            }
 
             return CreatedAtAction("GetAnimal", new { id = animal.Id }, animal);
         }
@@ -105,6 +125,10 @@ namespace WebApiTestDalaSteppes.Controllers
         private bool AnimalExists(int id)
         {
             return _context.Animals.Any(e => e.Id == id);
+        }
+        private bool BreedExists(int id)
+        {
+            return _context.Breeds.Any(e => e.Id == id);
         }
     }
 }

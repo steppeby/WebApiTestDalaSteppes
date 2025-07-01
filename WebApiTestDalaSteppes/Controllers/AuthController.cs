@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Models;
@@ -13,13 +14,13 @@ namespace WebApiTestDalaSteppes.Controllers
     public class AuthController : ControllerBase
     {
         private readonly UserManager<IdentityUser> _userManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IConfiguration _configuration;
-        public AuthController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration)
+        private readonly IEmailSender _emailSender;
+        public AuthController(UserManager<IdentityUser> userManager,  IConfiguration configuration, IEmailSender emailSender)
         {
             _userManager = userManager;
-            _roleManager = roleManager;
             _configuration = configuration;
+            _emailSender = emailSender;
         }
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] Register model)
@@ -32,9 +33,32 @@ namespace WebApiTestDalaSteppes.Controllers
             var result = await _userManager.CreateAsync(user, model.Password);
             if (result.Succeeded)
             {
+                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                var confirmationLink = Url.Action(
+                    nameof(ConfirmEmail),                 
+                    "Auth",                               
+                    new { userId = user.Id, token = token },
+                    Request.Scheme);
+                await _emailSender.SendEmailAsync(model.Email, "Confirm your account", $"<a href='{confirmationLink}'>Confirm your account using this link</a>");
                 return Ok("User registered successfully.");
             }
             return BadRequest(result.Errors);
+        }
+        [HttpGet("confirm-email")]
+        public async Task<IActionResult> ConfirmEmail(string userId, string token)
+        {
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(token))
+                return BadRequest("Invalid link.");
+
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+                return NotFound("User not found.");
+
+            var result = await _userManager.ConfirmEmailAsync(user, token);
+            if (result.Succeeded)
+                return Ok("Email successfully confirmed.");
+
+            return BadRequest("Confirmation error.");
         }
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] Login model)
@@ -46,11 +70,15 @@ namespace WebApiTestDalaSteppes.Controllers
             var user = await _userManager.FindByEmailAsync(model.Email);
             if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
             {
+                if (!await _userManager.IsEmailConfirmedAsync(user))
+                {
+                    return Unauthorized("Email isn't confirmed. Check your email.");
+                }
                 var userRoles = await _userManager.GetRolesAsync(user);
 
                 var authClaims = new List<Claim>
                 {
-                    new Claim(JwtRegisteredClaimNames.Sub, user.UserName),
+                    new Claim(JwtRegisteredClaimNames.Sub, user.Id),
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
                 };
 
@@ -69,48 +97,6 @@ namespace WebApiTestDalaSteppes.Controllers
                 return Ok(new {Token = new JwtSecurityTokenHandler().WriteToken(token) });
             }
             return Unauthorized("Invalid email or password.");
-        }
-        [HttpPost("add-role")]
-        public async Task<IActionResult> AddRole([FromBody] string roleName)
-        {
-            if (string.IsNullOrEmpty(roleName))
-            {
-                return BadRequest("Role name cannot be empty.");
-            }
-            if (!await _roleManager.RoleExistsAsync(roleName))
-            {
-                var role = new IdentityRole { Name = roleName };
-                var result = await _roleManager.CreateAsync(role);
-                if (result.Succeeded)
-                {
-                    return Ok("Role created successfully.");
-                }
-                return BadRequest(result.Errors);
-            }
-            return BadRequest("Role already exists.");
-        }
-        [HttpPost("assign-role")]
-        public async Task<IActionResult> AssignRole([FromBody] AssignUserRole model)
-        {
-            if (model == null || string.IsNullOrEmpty(model.Email) || string.IsNullOrEmpty(model.RoleName))
-            {
-                return BadRequest("Invalid role assignment data.");
-            }
-            var user = await _userManager.FindByEmailAsync(model.Email);
-            if (user == null)
-            {
-                return NotFound("User not found.");
-            }
-            if (!await _roleManager.RoleExistsAsync(model.RoleName))
-            {
-                return BadRequest("Role does not exist.");
-            }
-            var result = await _userManager.AddToRoleAsync(user, model.RoleName);
-            if (result.Succeeded)
-            {
-                return Ok("Role assigned successfully.");
-            }
-            return BadRequest(result.Errors);
         }
     }
 
