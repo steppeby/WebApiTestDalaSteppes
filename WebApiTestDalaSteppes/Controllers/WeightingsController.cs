@@ -137,7 +137,7 @@ namespace WebApiTestDalaSteppes.Controllers
                 {
                     return NotFound("Assigned user does not exist.");
                 }
-                if (!NotUniqueWeighting(weighting.AnimalId, weighting.WeightDate))
+                if (NotUniqueWeighting(weighting.AnimalId, weighting.WeightDate))
                 {
                     return BadRequest("You cannot weigh an animal twice on the same date.");
                 }
@@ -176,7 +176,7 @@ namespace WebApiTestDalaSteppes.Controllers
         {
             return _context.Users.Any(e => e.Id == id);
         }
-        private bool NotUniqueWeighting(int animalId, DateTime weightingDate)
+        private bool NotUniqueWeighting(int animalId, DateOnly weightingDate)
         {
             return _context.Weightings.Any(e => e.AnimalId == animalId && e.WeightDate == weightingDate);
         }

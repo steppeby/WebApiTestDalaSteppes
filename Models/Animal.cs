@@ -7,7 +7,7 @@ namespace Models
         public int Id { get; set; }
         public string Name { get; set; }
         public int Sex { get; set; }
-        public DateTime ArrivalDate { get; set; }
+        public DateOnly ArrivalDate { get; set; }
         public int ArrivalAge { get; set; }
         public int BreedId { get; set; }
         [JsonIgnore]

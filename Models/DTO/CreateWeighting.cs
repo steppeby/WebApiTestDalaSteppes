@@ -11,7 +11,7 @@ namespace Models.DTO
     {
         public int AnimalId { get; set; }
         public int Weight { get; set; }
-        public DateTime WeightDate { get; set; }
+        public DateOnly WeightDate { get; set; }
         public string? AssignedToUserId { get; set; }
     }
 }
